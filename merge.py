@@ -90,14 +90,18 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         20,  # marginSize
     ]
 
+    # Update models
+    models = api.util_get_model_names()
+
     # Generate a grid of images using the merged model
     prompt_params['script_name'] = "X/Y/Z Plot"
     prompt_params['script_args'] = script_args
+
     result = api.txt2img(**prompt_params)
     api.util_wait_for_ready()
 
     # Store the response image
-    result.image.save(f"{output_file}.png")
+    result.image.save(f"stage-{i}-{output_file}.png")
 
     # Ask for user input to select the best model
     chosen_alpha = int(input(
