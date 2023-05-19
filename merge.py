@@ -98,8 +98,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         api.util_wait_for_ready()
 
         # Store the response image
-        with open(f"{output_file}.png", 'wb') as f:
-            f.write(result.image.tobytes())
+        result.image.save(f"{output_file}.png")
 
     # Ask for user input to select the best model
     chosen_alpha = int(input(
