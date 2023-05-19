@@ -72,15 +72,15 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         os.rename(new_model_file_name, os.path.join(
             MODELS_DIR, new_model_file_name))
 
-        stage_merges.append(new_model_file_name)
+        stage_merges.append(output_file)
 
     script_args = [
-        XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
-        ALPHA_VALUES,
-        stage_merges,  # x_values_dropdown
         XYZPlotAvailableTxt2ImgScripts.index("Seed"),
         "-1,-1,-1",
-        "-1,-1,-1",  # y_values_dropdown
+        "-1,-1,-1",  # x_values_dropdown
+        XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
+        stage_merges,
+        stage_merges,  # y_values_dropdown
         XYZPlotAvailableTxt2ImgScripts.index("Nothing"),
         "",  # ZAxisValues
         "",  # ZAxisValuesDropdown
