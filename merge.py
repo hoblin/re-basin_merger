@@ -56,8 +56,11 @@ if len(file_paths) < 2:
 
 # For each remaining file path in the array
 for i, file_path in enumerate(file_paths[1:], start=1):
+    # Create an array to store the output file names with the file path of the first model without the extension
+    first_file_name = os.path.splitext(os.path.basename(file_paths[0]))[0]
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    stage_merges = [first_file_name]
     # For each alpha value
-    stage_merges = []
     for j, alpha in enumerate(ALPHA_VALUES, start=1):
         # Create the new output file name
         output_file = f"output-{i}.{j}"
@@ -74,6 +77,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
 
         stage_merges.append(output_file)
 
+    stage_merges.append(file_name)
     script_args = [
         XYZPlotAvailableTxt2ImgScripts.index("Seed"),
         "-1,-1,-1",
@@ -102,7 +106,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
     api.util_wait_for_ready()
 
     # Store the response image
-    result.image.save(f"stage-{i}-{os.path.splitext(os.path.basename(file_path))[0]}.png")
+    result.image.save(f"stage-{i}-{file_name}.png")
 
     # Ask for user input to select the best model
     chosen_alpha = int(input(
