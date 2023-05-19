@@ -72,10 +72,13 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         script_args = [
             XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
             [output_file],
+            "", # x_values_dropdown
             XYZPlotAvailableTxt2ImgScripts.index("Seed"),
             "-1,-1,-1",
+            "", # y_values_dropdown
             XYZPlotAvailableTxt2ImgScripts.index("Nothing"),
             "", # ZAxisValues
+            "", # ZAxisValuesDropdown
             "True", # drawLegend
             "False", # includeLoneImages
             "False", # includeSubGrids
