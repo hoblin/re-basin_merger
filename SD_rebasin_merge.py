@@ -1,3 +1,4 @@
+#!/workspace/re-basin_merger/rebasin/bin/python
 import argparse
 import torch
 import os
@@ -11,7 +12,7 @@ import time
 from safetensors.torch import save_file
 from safetensors import safe_open
 from weight_matching import sdunet_permutation_spec, weight_matching, apply_permutation
-from pynput import keyboard
+#from pynput import keyboard
 
 parser = argparse.ArgumentParser(description= "Merge two stable diffusion models with re-basin")
 parser.add_argument("--model_a", type=str, help="Path to model a")

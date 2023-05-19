@@ -129,5 +129,5 @@ with demo:
     prune_btn.click(run_prune,[output_box, usefp16_box])
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
 

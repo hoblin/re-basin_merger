@@ -1,0 +1,10 @@
+prompt: "a dog with a human face"
+negative_prompt: ""
+width: 512
+height: 768
+sampler: "DPM++ 2M Karras"
+cfg_scale: 8.5
+steps: 20
+batch_size: 1
+restore_faces: false
+clip_skip: 1
