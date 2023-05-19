@@ -11,7 +11,7 @@ PORT = 3000
 
 # Create API client and wait for job complete
 api = webuiapi.WebUIApi(host=HOST, port=PORT)
-# api.util_wait_for_ready()
+api.util_wait_for_ready()
 
 # Read the models.csv file and create an array of file paths
 file_paths = []
@@ -37,7 +37,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         output_file = f"output-{i}.{j}"
 
         # Run the merge script with the last output file and the next file path
-        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]}.safetensors --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations 250 --fast --usefp16", shell=True)
+        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations 250 --fast --usefp16", shell=True)
 
         # Move the output file to the models directory
         os.rename(f"{output_file}.safetensors", os.path.join(MODELS_DIR, f"{output_file}.safetensors"))
@@ -53,7 +53,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
 
     # Ask for user input to select the best model
     chosen_alpha = int(input("Enter the number of the chosen alpha value (1 for 0.1, 2 for 0.3, etc.): "))
-    chosen_output_file = f"output-{i}.{chosen_alpha}"
+    chosen_output_file = f"output-{i}.{chosen_alpha}.safetensors"
 
     # Delete the unchosen models
     for j, alpha in enumerate(ALPHA_VALUES, start=1):
