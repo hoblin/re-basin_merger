@@ -65,25 +65,30 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         subprocess.run(
             f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations {ITERATIONS} --fast --usefp16", shell=True)
 
+        new_model_file_name = f"{output_file}.safetensors"
+
         # Move the output file to the models directory
-        os.rename(f"{output_file}.safetensors", os.path.join(
-            MODELS_DIR, f"{output_file}.safetensors"))
+        os.rename(new_model_file_name, os.path.join(
+            MODELS_DIR, new_model_file_name))
+
+        # Try to set model
+        api.util_set_model(new_model_file_name)
 
         script_args = [
             XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
-            [f"{output_file}.safetensors"],
-            "", # x_values_dropdown
+            [new_model_file_name],
+            "",  # x_values_dropdown
             XYZPlotAvailableTxt2ImgScripts.index("Seed"),
             "-1,-1,-1",
-            "", # y_values_dropdown
+            "",  # y_values_dropdown
             XYZPlotAvailableTxt2ImgScripts.index("Nothing"),
-            "", # ZAxisValues
-            "", # ZAxisValuesDropdown
-            "True", # drawLegend
-            "False", # includeLoneImages
-            "False", # includeSubGrids
-            "False", # noFixedSeeds
-            20, # marginSize
+            "",  # ZAxisValues
+            "",  # ZAxisValuesDropdown
+            "True",  # drawLegend
+            "False",  # includeLoneImages
+            "False",  # includeSubGrids
+            "False",  # noFixedSeeds
+            20,  # marginSize
         ]
 
         # Generate a grid of images using the merged model
