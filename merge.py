@@ -99,7 +99,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
 
         # Store the response image
         with open(f"{output_file}.png", 'wb') as f:
-            f.write(result.image)
+            f.write(result.image.get_bytes())
 
     # Ask for user input to select the best model
     chosen_alpha = int(input(
