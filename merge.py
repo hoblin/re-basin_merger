@@ -69,10 +69,23 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         os.rename(f"{output_file}.safetensors", os.path.join(
             MODELS_DIR, f"{output_file}.safetensors"))
 
+        script_args = [
+            XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
+            [output_file],
+            XYZPlotAvailableTxt2ImgScripts.index("Seed"),
+            "-1,-1,-1",
+            XYZPlotAvailableTxt2ImgScripts.index("Nothing"),
+            "", # ZAxisValues
+            "True", # drawLegend
+            "False", # includeLoneImages
+            "False", # includeSubGrids
+            "False", # noFixedSeeds
+            20, # marginSize
+        ]
+
         # Generate a grid of images using the merged model
         prompt_params['script_name'] = "X/Y/Z Plot"
-        prompt_params['script_args'] = [XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"), output_file, XYZPlotAvailableTxt2ImgScripts.index(
-            "Seed"), "-1,-1,-1", XYZPlotAvailableTxt2ImgScripts.index("Nothing"), "", "True", "False", "False", "False", 0]
+        prompt_params['script_args'] = script_args
         result = api.txt2img(**prompt_params)
 
         # Store the response image
