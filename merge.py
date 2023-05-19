@@ -101,11 +101,8 @@ for i, file_path in enumerate(file_paths[1:], start=1):
     result = api.txt2img(**prompt_params)
     api.util_wait_for_ready()
 
-    # Extract model filename from the path without the extension
-    image_file_name = os.path.splitext(os.path.basename(file_path))[0]
-
     # Store the response image
-    result.image.save(f"stage-{i}-{image_file_name}.png")
+    result.image.save(f"stage-{i}-{os.path.splitext(os.path.basename(file_path))[0]}.png")
 
     # Ask for user input to select the best model
     chosen_alpha = int(input(
@@ -116,7 +113,6 @@ for i, file_path in enumerate(file_paths[1:], start=1):
     for j, alpha in enumerate(ALPHA_VALUES, start=1):
         if j != chosen_alpha:
             os.remove(os.path.join(MODELS_DIR, f"output-{i}.{j}.safetensors"))
-            os.remove(f"output-{i}.{j}.png")
 
     # Update the file path for the next iteration
     file_paths[0] = os.path.join(MODELS_DIR, chosen_output_file)
