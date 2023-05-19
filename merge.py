@@ -57,6 +57,7 @@ if len(file_paths) < 2:
 # For each remaining file path in the array
 for i, file_path in enumerate(file_paths[1:], start=1):
     # For each alpha value
+    stage_merges = []
     for j, alpha in enumerate(ALPHA_VALUES, start=1):
         # Create the new output file name
         output_file = f"output-{i}.{j}"
@@ -71,34 +72,33 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         os.rename(new_model_file_name, os.path.join(
             MODELS_DIR, new_model_file_name))
 
-        # Try to set model
-        api.util_set_model(new_model_file_name)
+        stage_merges.append(new_model_file_name)
 
-        script_args = [
-            XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
-            [new_model_file_name],
-            [new_model_file_name],  # x_values_dropdown
-            XYZPlotAvailableTxt2ImgScripts.index("Seed"),
-            "-1,-1,-1",
-            "-1,-1,-1",  # y_values_dropdown
-            XYZPlotAvailableTxt2ImgScripts.index("Nothing"),
-            "",  # ZAxisValues
-            "",  # ZAxisValuesDropdown
-            "True",  # drawLegend
-            "False",  # includeLoneImages
-            "False",  # includeSubGrids
-            "False",  # noFixedSeeds
-            20,  # marginSize
-        ]
+    script_args = [
+        XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
+        [stage_merges],
+        [stage_merges],  # x_values_dropdown
+        XYZPlotAvailableTxt2ImgScripts.index("Seed"),
+        "-1,-1,-1",
+        "-1,-1,-1",  # y_values_dropdown
+        XYZPlotAvailableTxt2ImgScripts.index("Nothing"),
+        "",  # ZAxisValues
+        "",  # ZAxisValuesDropdown
+        "True",  # drawLegend
+        "False",  # includeLoneImages
+        "False",  # includeSubGrids
+        "False",  # noFixedSeeds
+        20,  # marginSize
+    ]
 
-        # Generate a grid of images using the merged model
-        prompt_params['script_name'] = "X/Y/Z Plot"
-        prompt_params['script_args'] = script_args
-        result = api.txt2img(**prompt_params)
-        api.util_wait_for_ready()
+    # Generate a grid of images using the merged model
+    prompt_params['script_name'] = "X/Y/Z Plot"
+    prompt_params['script_args'] = script_args
+    result = api.txt2img(**prompt_params)
+    api.util_wait_for_ready()
 
-        # Store the response image
-        result.image.save(f"{output_file}.png")
+    # Store the response image
+    result.image.save(f"{output_file}.png")
 
     # Ask for user input to select the best model
     chosen_alpha = int(input(
@@ -109,6 +109,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
     for j, alpha in enumerate(ALPHA_VALUES, start=1):
         if j != chosen_alpha:
             os.remove(os.path.join(MODELS_DIR, f"output-{i}.{j}.safetensors"))
+            os.remove(f"output-{i}.{j}.png")
 
     # Update the file path for the next iteration
     file_paths[0] = os.path.join(MODELS_DIR, chosen_output_file)
