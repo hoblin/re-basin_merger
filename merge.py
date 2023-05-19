@@ -90,6 +90,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         prompt_params['script_name'] = "X/Y/Z Plot"
         prompt_params['script_args'] = script_args
         result = api.txt2img(**prompt_params)
+        api.util_wait_for_ready()
 
         # Store the response image
         with open(f"{output_file}.png", 'wb') as f:
