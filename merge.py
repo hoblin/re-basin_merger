@@ -8,7 +8,7 @@ MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
 ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
 HOST = "localhost"
 PORT = 3000
-ITERATIONS = 250
+ITERATIONS = 10
 
 XYZPlotAvailableTxt2ImgScripts = [
     "Nothing",
