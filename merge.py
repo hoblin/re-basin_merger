@@ -1,34 +1,59 @@
 import os
 import subprocess
+import yaml
+import webuiapi
+
+# Constants
+MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
+ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
+
+# Create API client and wait for job complete
+api = webuiapi.WebUIApi()
+api.util_wait_for_ready()
 
 # Read the models.txt file and create an array of file paths
 with open('models.txt', 'r') as f:
-    file_paths = [line.strip() for line in f]
+    file_paths = [os.path.join(MODELS_DIR, line.strip()) for line in f]
+
+# Read the prompt parameters from prompt.yaml
+with open('prompt.yaml', 'r') as f:
+    prompt_params = yaml.safe_load(f)
 
 # Check if there are at least two files to merge
 if len(file_paths) < 2:
     print("Need at least two files to merge.")
     exit(1)
 
-# Initial output file name
-output_file = "output-0.0.1"
-
-# Run the initial merge
-subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_paths[1]} --output {output_file} --alpha 0.3 --device cuda --iterations 250 --fast --usefp16", shell=True)
-
-# Delete the first two file paths from the list
-del file_paths[0:2]
-
 # For each remaining file path in the array
-for i, file_path in enumerate(file_paths, start=1):
-    # Create the new output file name
-    new_output_file = f"output-0.0.{i+1}"
+for i, file_path in enumerate(file_paths[1:], start=1):
+    # For each alpha value
+    for j, alpha in enumerate(ALPHA_VALUES, start=1):
+        # Create the new output file name
+        output_file = f"output-{i}.{j}"
 
-    # Run the merge script with the last output file and the next file path
-    subprocess.run(f"python SD_rebasin_merge.py --model_a {output_file}.safetensors --model_b {file_path} --output {new_output_file} --alpha 0.3 --device cuda --iterations 250 --fast --usefp16", shell=True)
+        # Run the merge script with the last output file and the next file path
+        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]}.safetensors --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations 250 --fast", shell=True)
 
-    # Delete the old output file
-    os.remove(f"{output_file}.safetensors")
+        # Move the output file to the models directory
+        os.rename(f"{output_file}.safetensors", os.path.join(MODELS_DIR, f"{output_file}.safetensors"))
 
-    # Update the output file name for the next iteration
-    output_file = new_output_file
+        # Generate a grid of images using the merged model
+        prompt_params['script_name'] = "X/Y/Z Plot"
+        prompt_params['script_args'] = [XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"), output_file, XYZPlotAvailableTxt2ImgScripts.index("Seed"), "-1,-1,-1", XYZPlotAvailableTxt2ImgScripts.index("Nothing"), "", "True", "False", "False", "False", 0]
+        result = api.txt2img(**prompt_params)
+
+        # Store the response image
+        with open(f"{output_file}.png", 'wb') as f:
+            f.write(result.image)
+
+    # Ask for user input to select the best model
+    chosen_alpha = int(input("Enter the number of the chosen alpha value (1 for 0.1, 2 for 0.3, etc.): "))
+    chosen_output_file = f"output-{i}.{chosen_alpha}"
+
+    # Delete the unchosen models
+    for j, alpha in enumerate(ALPHA_VALUES, start=1):
+        if j != chosen_alpha:
+            os.remove(os.path.join(MODELS_DIR, f"output-{i}.{j}.safetensors"))
+
+    # Update the file path for the next iteration
+    file_paths[0] = os.path.join(MODELS_DIR, chosen_output_file)
