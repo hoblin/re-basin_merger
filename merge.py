@@ -6,9 +6,11 @@ import webuiapi
 # Constants
 MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
 ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
+HOST = "localhost"
+PORT = 3000
 
 # Create API client and wait for job complete
-api = webuiapi.WebUIApi()
+api = webuiapi.WebUIApi(host=HOST, port=PORT)
 api.util_wait_for_ready()
 
 # Read the models.csv file and create an array of file paths
