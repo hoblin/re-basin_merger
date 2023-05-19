@@ -11,9 +11,12 @@ ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
 api = webuiapi.WebUIApi()
 api.util_wait_for_ready()
 
-# Read the models.txt file and create an array of file paths
-with open('models.txt', 'r') as f:
-    file_paths = [os.path.join(MODELS_DIR, line.strip()) for line in f]
+# Read the models.csv file and create an array of file paths
+file_paths = []
+with open('models.csv', 'r') as f:
+    for line in f:
+        file_name, _url = line.strip().split(',')
+        file_paths.append(os.path.join(MODELS_DIR, file_name))
 
 # Read the prompt parameters from prompt.yaml
 with open('prompt.yaml', 'r') as f:
