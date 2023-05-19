@@ -76,8 +76,8 @@ for i, file_path in enumerate(file_paths[1:], start=1):
 
     script_args = [
         XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
-        [stage_merges],
-        [stage_merges],  # x_values_dropdown
+        stage_merges,
+        stage_merges,  # x_values_dropdown
         XYZPlotAvailableTxt2ImgScripts.index("Seed"),
         "-1,-1,-1",
         "-1,-1,-1",  # y_values_dropdown
