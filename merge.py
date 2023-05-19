@@ -11,7 +11,7 @@ PORT = 3000
 
 # Create API client and wait for job complete
 api = webuiapi.WebUIApi(host=HOST, port=PORT)
-api.util_wait_for_ready()
+# api.util_wait_for_ready()
 
 # Read the models.csv file and create an array of file paths
 file_paths = []
