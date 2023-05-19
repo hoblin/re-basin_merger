@@ -92,7 +92,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
     ]
 
     # Update models
-    models = api.util_get_model_names()
+    api.refresh_checkpoints()
 
     # Generate a grid of images using the merged model
     prompt_params['script_name'] = "X/Y/Z Plot"
