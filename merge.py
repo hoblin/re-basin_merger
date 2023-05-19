@@ -8,6 +8,7 @@ MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
 ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
 HOST = "localhost"
 PORT = 3000
+ITERATIONS = 250
 
 # Create API client and wait for job complete
 api = webuiapi.WebUIApi(host=HOST, port=PORT)
@@ -37,7 +38,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         output_file = f"output-{i}.{j}"
 
         # Run the merge script with the last output file and the next file path
-        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations 250 --fast --usefp16", shell=True)
+        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations {ITERATIONS} --fast --usefp16", shell=True)
 
         # Move the output file to the models directory
         os.rename(f"{output_file}.safetensors", os.path.join(MODELS_DIR, f"{output_file}.safetensors"))
