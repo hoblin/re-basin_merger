@@ -35,7 +35,7 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         output_file = f"output-{i}.{j}"
 
         # Run the merge script with the last output file and the next file path
-        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]}.safetensors --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations 250 --fast", shell=True)
+        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]}.safetensors --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations 250 --fast --usefp16", shell=True)
 
         # Move the output file to the models directory
         os.rename(f"{output_file}.safetensors", os.path.join(MODELS_DIR, f"{output_file}.safetensors"))
