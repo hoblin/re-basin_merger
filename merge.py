@@ -10,6 +10,30 @@ HOST = "localhost"
 PORT = 3000
 ITERATIONS = 250
 
+XYZPlotAvailableTxt2ImgScripts = [
+    "Nothing",
+    "Seed",
+    "Var. seed",
+    "Var. strength",
+    "Steps",
+    "Hires steps",
+    "CFG Scale",
+    "Prompt S/R",
+    "Prompt order",
+    "Sampler",
+    "Checkpoint name",
+    "Sigma Churn",
+    "Sigma min",
+    "Sigma max",
+    "Sigma noise",
+    "Eta",
+    "Clip skip",
+    "Denoising",
+    "Hires upscaler",
+    "VAE",
+    "Styles",
+]
+
 # Create API client and wait for job complete
 api = webuiapi.WebUIApi(host=HOST, port=PORT)
 api.util_wait_for_ready()
@@ -38,14 +62,17 @@ for i, file_path in enumerate(file_paths[1:], start=1):
         output_file = f"output-{i}.{j}"
 
         # Run the merge script with the last output file and the next file path
-        subprocess.run(f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations {ITERATIONS} --fast --usefp16", shell=True)
+        subprocess.run(
+            f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations {ITERATIONS} --fast --usefp16", shell=True)
 
         # Move the output file to the models directory
-        os.rename(f"{output_file}.safetensors", os.path.join(MODELS_DIR, f"{output_file}.safetensors"))
+        os.rename(f"{output_file}.safetensors", os.path.join(
+            MODELS_DIR, f"{output_file}.safetensors"))
 
         # Generate a grid of images using the merged model
         prompt_params['script_name'] = "X/Y/Z Plot"
-        prompt_params['script_args'] = [XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"), output_file, XYZPlotAvailableTxt2ImgScripts.index("Seed"), "-1,-1,-1", XYZPlotAvailableTxt2ImgScripts.index("Nothing"), "", "True", "False", "False", "False", 0]
+        prompt_params['script_args'] = [XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"), output_file, XYZPlotAvailableTxt2ImgScripts.index(
+            "Seed"), "-1,-1,-1", XYZPlotAvailableTxt2ImgScripts.index("Nothing"), "", "True", "False", "False", "False", 0]
         result = api.txt2img(**prompt_params)
 
         # Store the response image
@@ -53,7 +80,8 @@ for i, file_path in enumerate(file_paths[1:], start=1):
             f.write(result.image)
 
     # Ask for user input to select the best model
-    chosen_alpha = int(input("Enter the number of the chosen alpha value (1 for 0.1, 2 for 0.3, etc.): "))
+    chosen_alpha = int(input(
+        "Enter the number of the chosen alpha value (1 for 0.1, 2 for 0.3, etc.): "))
     chosen_output_file = f"output-{i}.{chosen_alpha}.safetensors"
 
     # Delete the unchosen models
