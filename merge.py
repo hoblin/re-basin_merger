@@ -9,6 +9,7 @@ ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
 HOST = "localhost"
 PORT = 3000
 ITERATIONS = 250
+SEEDS = "426827770,1740580456,1864210131"
 
 XYZPlotAvailableTxt2ImgScripts = [
     "Nothing",
@@ -79,8 +80,8 @@ for i, file_path in enumerate(file_paths[1:], start=1):
     stage_merges.append(file_name)
     script_args = [
         XYZPlotAvailableTxt2ImgScripts.index("Seed"),
-        "-1,-1,-1",
-        "-1,-1,-1",  # x_values_dropdown
+        SEEDS,
+        SEEDS,  # x_values_dropdown
         XYZPlotAvailableTxt2ImgScripts.index("Checkpoint name"),
         stage_merges,
         stage_merges,  # y_values_dropdown
