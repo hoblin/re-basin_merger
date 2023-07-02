@@ -58,7 +58,7 @@ if len(merge_plan) < 2:
 # For each remaining file path in the array
 for i, step in enumerate(merge_plan[1:], start=1):
     # Create an array to store the output file names with the file path of the first model without the extension
-    step_id, version_filename, step_alpha = step['id'], step['version_filename'], step['alpha']
+    step_id, version_filename, step_alpha = step['step_id'], step['version_filename'], step['alpha']
 
     first_file_name = merge_plan[0]['version_filename']
     stage_merges = [first_file_name]
