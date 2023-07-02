@@ -2,8 +2,7 @@ import os
 import subprocess
 import yaml
 import requests
-import json
-from pathlib import Path
+import webuiapi
 
 # Constants
 MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
@@ -137,11 +136,11 @@ for i, step in enumerate(merge_plan[1:], start=1):
     # if user input is zero, skip the step
     if chosen_alpha == 0:
         # save the alpha value to the database
-        requests.patch(UPDATE_ALPHA_API.format(step_id=step_id), params={'alpha': 0})
+        requests.patch(UPDATE_ALPHA_API.format(step_id=step_id), params={'alpha': 0.0})
         continue
 
     # save the alpha value to the database
     requests.patch(UPDATE_ALPHA_API.format(step_id=step_id), params={'alpha': alpha_list[chosen_alpha - 1]})
 
     # Update the file path for the next iteration
-    merge_plan[0]['version_filename'] = os.path.join(MODELS_DIR, chosen_output_file)
+    merge_plan[0]['version_filename'] = chosen_output_file
