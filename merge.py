@@ -62,6 +62,10 @@ for i, step in enumerate(merge_plan[1:], start=1):
 
     first_file_name = merge_plan[0]['version_filename']
     stage_merges = [first_file_name]
+
+    model_a_file_path = os.path.join(MODELS_DIR, first_file_name)
+    model_b_file_path = os.path.join(MODELS_DIR, version_filename)
+
     # if step alpha is not null or empty string use [step['alpha']] else use ALPHA_VALUES
     alpha_list = [float(step_alpha)] if step_alpha else ALPHA_VALUES
     # For each alpha value
@@ -71,7 +75,7 @@ for i, step in enumerate(merge_plan[1:], start=1):
 
         # Run the merge script with the last output file and the next file path
         subprocess.run(
-            f"python SD_rebasin_merge.py --model_a {file_paths[0]} --model_b {file_path} --output {output_file} --alpha {alpha} --device cuda --iterations {ITERATIONS} --fast --usefp16", shell=True)
+            f"python SD_rebasin_merge.py --model_a {model_a_file_path} --model_b {model_b_file_path} --output {output_file} --alpha {alpha} --device cuda --iterations {ITERATIONS} --fast --usefp16", shell=True)
 
         new_model_file_name = f"{output_file}.safetensors"
 
