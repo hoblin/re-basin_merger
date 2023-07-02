@@ -6,7 +6,7 @@ import webuiapi
 
 # Constants
 MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
-ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
+ALPHA_VALUES = [0.1, 0.2, 0.3, 0.5, 0.7]
 API_HOST = "https://hoblin.ngrok.io"
 MERGE_PLAN_API = f"{API_HOST}/admin/checkpoint_merges/1/merge_plan"
 UPDATE_ALPHA_API = f"{API_HOST}/admin/merge_steps/{{step_id}}/update_alpha"
