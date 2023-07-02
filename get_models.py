@@ -1,21 +1,29 @@
 import os
 import subprocess
+import requests
+import json
+from pathlib import Path
 
 # Constants
-MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
+MODELS_DIR = Path("/workspace/stable-diffusion-webui/models/Stable-diffusion/")
+API_HOST = "https://hoblin.ngrok.io"
+MERGE_PLAN_API = f"{API_HOST}/admin/checkpoint_merges/1/merge_plan"
+UPDATE_FILENAME_API = f"{API_HOST}/admin/source_checkpoint_versions/{{version_id}}/update_filename"
 
-def download_model(file_name, url):
-    # Check if the model file exists
-    if not os.path.exists(os.path.join(MODELS_DIR, file_name)):
-        # Download the model file
-        if "civitai.com" in url:
-            subprocess.run(f"wget --content-disposition {url} -P {MODELS_DIR}", shell=True)
-        elif "drive.google.com" in url:
-            file_id = url.split('/')[-2]
-            subprocess.run(f"gdown --id {file_id} --output {os.path.join(MODELS_DIR, file_name)}", shell=True)
+def download_model(version_id, url):
+    # Download the model file
+    subprocess.run(f"wget --content-disposition {url} -P {MODELS_DIR}", shell=True)
 
-# Read the models.csv file
-with open('models.csv', 'r') as f:
-    for line in f:
-        file_name, url = line.strip().split(',')
-        download_model(file_name, url)
+    # Get the filename of the most recently downloaded file
+    file_name = max(MODELS_DIR.glob('*'), key=os.path.getctime).name
+
+    # Send PATCH request to update the filename in the Rails app
+    requests.patch(UPDATE_FILENAME_API.format(version_id=version_id), params={'file_name': file_name})
+
+# Get the merge plan from the Rails app
+response = requests.get(MERGE_PLAN_API)
+merge_plan = response.json()
+
+# Download the models
+for step in merge_plan:
+    download_model(step['version_id'], step['version_download_link'])
