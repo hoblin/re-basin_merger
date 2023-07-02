@@ -68,6 +68,11 @@ for i, step in enumerate(merge_plan[1:], start=1):
 
     # if step alpha is not null or empty string use [step['alpha']] else use ALPHA_VALUES
     alpha_list = [float(step_alpha)] if step_alpha else ALPHA_VALUES
+
+    # If there is one alpha value and the alpha value is zero, skip the step
+    if len(alpha_list) == 1 and alpha_list[0] == 0.0:
+        continue
+
     # For each alpha value
     for j, alpha in enumerate(alpha_list, start=1):
         # Create the new output file name
@@ -89,10 +94,6 @@ for i, step in enumerate(merge_plan[1:], start=1):
 
     # If there is one alpha value, don't ask the user to choose
     if len(alpha_list) == 1:
-        # if the alpha value is zero, skip the step
-        if alpha_list[0] == 0.0:
-            continue
-
         merge_plan[0]['version_filename'] = f"output-{i}.1.safetensors"
         continue
 
