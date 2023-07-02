@@ -13,7 +13,7 @@ UPDATE_ALPHA_API = f"{API_HOST}/admin/merge_steps/{{step_id}}/update_alpha"
 HOST = "localhost"
 PORT = 3000
 ITERATIONS = 250
-SEEDS = "426827770,1740580456,1864210131"
+SEEDS = "3124739301,3124739317,3124739308,3124739318"
 
 XYZPlotAvailableTxt2ImgScripts = [
     "Nothing",
