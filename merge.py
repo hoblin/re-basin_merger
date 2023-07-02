@@ -1,11 +1,16 @@
 import os
 import subprocess
 import yaml
-import webuiapi
+import requests
+import json
+from pathlib import Path
 
 # Constants
 MODELS_DIR = "/workspace/stable-diffusion-webui/models/Stable-diffusion/"
 ALPHA_VALUES = [0.1, 0.3, 0.5, 0.7, 0.9]
+API_HOST = "https://hoblin.ngrok.io"
+MERGE_PLAN_API = f"{API_HOST}/admin/checkpoint_merges/1/merge_plan"
+UPDATE_ALPHA_API = f"{API_HOST}/admin/merge_steps/{{step_id}}/update_alpha"
 HOST = "localhost"
 PORT = 3000
 ITERATIONS = 250
@@ -35,33 +40,33 @@ XYZPlotAvailableTxt2ImgScripts = [
     "Styles",
 ]
 
-# Create API client and wait for job complete
+# Create webui API client
 api = webuiapi.WebUIApi(host=HOST, port=PORT)
-
-# Read the models.csv file and create an array of file paths
-file_paths = []
-with open('models.csv', 'r') as f:
-    for line in f:
-        file_name, _url = line.strip().split(',')
-        file_paths.append(os.path.join(MODELS_DIR, file_name))
 
 # Read the prompt parameters from prompt.yaml
 with open('prompt.yaml', 'r') as f:
     prompt_params = yaml.safe_load(f)
 
+# Get the merge plan from the merger planner
+response = requests.get(MERGE_PLAN_API)
+merge_plan = response.json()
+
 # Check if there are at least two files to merge
-if len(file_paths) < 2:
+if len(merge_plan) < 2:
     print("Need at least two files to merge.")
     exit(1)
 
 # For each remaining file path in the array
-for i, file_path in enumerate(file_paths[1:], start=1):
+for i, step in enumerate(merge_plan[1:], start=1):
     # Create an array to store the output file names with the file path of the first model without the extension
-    first_file_name = os.path.splitext(os.path.basename(file_paths[0]))[0]
-    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    step_id, version_filename, step_alpha = step['id'], step['version_filename'], step['alpha']
+
+    first_file_name = merge_plan[0]['version_filename']
     stage_merges = [first_file_name]
+    # if step alpha is not null or empty string use [step['alpha']] else use ALPHA_VALUES
+    alpha_list = [float(step_alpha)] if step_alpha else ALPHA_VALUES
     # For each alpha value
-    for j, alpha in enumerate(ALPHA_VALUES, start=1):
+    for j, alpha in enumerate(alpha_list, start=1):
         # Create the new output file name
         output_file = f"output-{i}.{j}"
 
@@ -77,7 +82,17 @@ for i, file_path in enumerate(file_paths[1:], start=1):
 
         stage_merges.append(output_file)
 
-    stage_merges.append(file_name)
+    stage_merges.append(version_filename)
+
+    # If there is one alpha value, don't ask the user to choose
+    if len(alpha_list) == 1:
+        # if the alpha value is zero, skip the step
+        if alpha_list[0] == 0.0:
+            continue
+
+        merge_plan[0]['version_filename'] = f"output-{i}.1.safetensors"
+        continue
+
     script_args = [
         XYZPlotAvailableTxt2ImgScripts.index("Seed"),
         SEEDS,
@@ -106,17 +121,27 @@ for i, file_path in enumerate(file_paths[1:], start=1):
     api.util_wait_for_ready()
 
     # Store the response image
-    result.image.save(f"stage-{i}-{file_name}.png")
+    result.image.save(f"stage-{i}-{version_filename}.png")
 
     # Ask for user input to select the best model
     chosen_alpha = int(input(
         "Enter the number of the chosen alpha value (1 for 0.1, 2 for 0.3, etc.): "))
     chosen_output_file = f"output-{i}.{chosen_alpha}.safetensors"
 
+
     # Delete the unchosen models
     for j, alpha in enumerate(ALPHA_VALUES, start=1):
         if j != chosen_alpha:
             os.remove(os.path.join(MODELS_DIR, f"output-{i}.{j}.safetensors"))
 
+    # if user input is zero, skip the step
+    if chosen_alpha == 0:
+        # save the alpha value to the database
+        requests.patch(UPDATE_ALPHA_API.format(step_id=step_id), params={'alpha': 0})
+        continue
+
+    # save the alpha value to the database
+    requests.patch(UPDATE_ALPHA_API.format(step_id=step_id), params={'alpha': alpha_list[chosen_alpha - 1]})
+
     # Update the file path for the next iteration
-    file_paths[0] = os.path.join(MODELS_DIR, chosen_output_file)
+    merge_plan[0]['version_filename'] = os.path.join(MODELS_DIR, chosen_output_file)
