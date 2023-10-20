@@ -5,7 +5,6 @@ import torch
 from scipy.optimize import linear_sum_assignment
 import time
 from random import shuffle
-from tqdm import tqdm
 
 rngmix = lambda rng, x: random.fold_in(rng, hash(x))
 
@@ -20,6 +19,19 @@ def permutation_spec_from_axes_to_perm(axes_to_perm: dict) -> PermutationSpec:
       if perm is not None:
         perm_to_axes[perm].append((wk, axis))
   return PermutationSpec(perm_to_axes=dict(perm_to_axes), axes_to_perm=axes_to_perm)
+
+def mlp_permutation_spec(num_hidden_layers: int) -> PermutationSpec:
+  """We assume that one permutation cannot appear in two axes of the same weight array."""
+  assert num_hidden_layers >= 1
+  return permutation_spec_from_axes_to_perm({
+      "layer0.weight": ("P_0", None),
+      **{f"layer{i}.weight": ( f"P_{i}", f"P_{i-1}")
+         for i in range(1, num_hidden_layers)},
+      **{f"layer{i}.bias": (f"P_{i}", )
+         for i in range(num_hidden_layers)},
+      f"layer{num_hidden_layers}.weight": (None, f"P_{num_hidden_layers-1}"),
+      f"layer{num_hidden_layers}.bias": (None, ),
+  })
 
 def sdunet_permutation_spec() -> PermutationSpec:
   conv = lambda name, p_in, p_out: {f"{name}.weight": (p_out, p_in,), f"{name}.bias": (p_out,) }
@@ -72,850 +84,6 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **skip("log_one_minus_alphas_cumprod", None, None),
      **skip("model_ema.decay", None, None),
      **skip("model_ema.num_updates", None, None),
-     **skip("cond_stage_model.transformer.embeddings.position_ids", None, None),
-     **skip("cond_stage_model.transformer.embeddings.token_embedding.weight", None, None),
-     **skip("cond_stage_model.transformer.embeddings.position_embedding.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.embeddings.position_embedding.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.embeddings.position_ids", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.embeddings.token_embedding.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.final_layer_norm.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.final_layer_norm.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_mlora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_mlora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_0_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_11_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_1_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_2_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_3_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_4_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_5_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_6_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_7_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_8_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_9_self_attn_v_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc1.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc1.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc1.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc2.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc2.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_mlp_fc2.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_k_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_k_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_k_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_out_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_out_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_out_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_q_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_q_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_q_proj.lora_down.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_v_proj.alpha", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_v_proj.lora_up.weight", None, None),
-     **skip("lora_te_text_model_encoder_layers_10_self_attn_v_proj.lora_down.weight", None, None),
-
-
-
-
-
-
-
-
-
-
-
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.0.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.1.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.10.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.11.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.2.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.3.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.4.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.5.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.6.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.7.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.8.self_attn.v_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.layer_norm1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.layer_norm1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.layer_norm2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.layer_norm2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.mlp.fc1.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.mlp.fc1.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.mlp.fc2.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.mlp.fc2.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.k_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.k_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.out_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.out_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.q_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.q_proj.weight", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.v_proj.bias", None, None),
-     **skip("embedding_manager.embedder.transformer.text_model.encoder.layers.9.self_attn.v_proj.weight", None, None),
-
-
-
-
-
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.0.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.1.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.2.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.3.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.4.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.5.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.6.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.7.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.8.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.9.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.10.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.encoder.layers.11.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.final_layer_norm.weight", None, None),
-     **skip("cond_stage_model.transformer.final_layer_norm.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.embeddings.position_embedding.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.embeddings.position_ids", None, None),
-     **skip("cond_stage_model.transformer.text_model.embeddings.token_embedding.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.0.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.1.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.10.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.11.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.2.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.3.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.4.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.5.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.6.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.8.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.layer_norm1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.layer_norm1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.layer_norm2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.layer_norm2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.mlp.fc1.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.mlp.fc1.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.mlp.fc2.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.mlp.fc2.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.k_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.k_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.out_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.out_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.q_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.q_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.v_proj.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.encoder.layers.9.self_attn.v_proj.weight", None, None),
-     **skip("cond_stage_model.transformer.text_model.final_layer_norm.bias", None, None),
-     **skip("cond_stage_model.transformer.text_model.final_layer_norm.weight", None, None),
 
      #initial 
      **dense("model.diffusion_model.time_embed.0", None, "P_bg0", bias=True),
@@ -1216,7 +384,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.attn1.to_k", "P_bg292", "P_bg293", bias=False),
      **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.attn1.to_v", "P_bg292", "P_bg293", bias=False),
      **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.attn1.to_out.0", "P_bg292","P_bg293", bias=True),
-     **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.ff.net.0.proj", "P_b294","P_bg295", bias=True),
+     **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.ff.net.0.proj", "P_bg294","P_bg295", bias=True),
      **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.ff.net.2", "P_bg296","P_bg297", bias=True),
      **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.attn2.to_q", "P_bg298", "P_bg299", bias=False),
      **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.attn2.to_k", "P_bg300", "P_bg301", bias=False),
@@ -1434,7 +602,168 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("cond_stage_model.transformer.text_model.encoder.layers.11.layer_norm2", "P_bg407"),
      
      **norm("cond_stage_model.transformer.text_model.final_layer_norm", "P_bg407")
+    
       })
+
+
+
+def cnn_permutation_spec() -> PermutationSpec:
+  conv = lambda name, p_in, p_out: {f"{name}.weight": (p_out, p_in, None, None, )}
+  dense = lambda name, p_in, p_out, bias=True: {f"{name}.weight": (p_out, p_in), f"{name}.bias": (p_out, )} if bias else  {f"{name}.weight": (p_out, p_in)}
+
+  return permutation_spec_from_axes_to_perm({
+     **conv("conv1", None, "P_bg0"),
+     **conv("conv2", "P_bg0", "P_bg1"),
+     **dense("fc1", "P_bg1", "P_bg2"),
+     **dense("fc2", "P_bg2", None, False),
+  })
+
+
+
+
+def resnet20_permutation_spec() -> PermutationSpec:
+  conv = lambda name, p_in, p_out: {f"{name}.weight": (p_out, p_in, None, None, )}
+  norm = lambda name, p: {f"{name}.weight": (p, ), f"{name}.bias": (p, )}
+  dense = lambda name, p_in, p_out: {f"{name}.weight": (p_out, p_in), f"{name}.bias": (p_out, )}
+
+  # This is for easy blocks that use a residual connection, without any change in the number of channels.
+  easyblock = lambda name, p: {
+  **norm(f"{name}.bn1", p),
+  **conv(f"{name}.conv1", p, f"P_{name}_inner"),
+  **norm(f"{name}.bn2", f"P_{name}_inner"),
+  **conv(f"{name}.conv2", f"P_{name}_inner", p),
+  }
+
+  # This is for blocks that use a residual connection, but change the number of channels via a Conv.
+  shortcutblock = lambda name, p_in, p_out: {
+  **norm(f"{name}.bn1", p_in),
+  **conv(f"{name}.conv1", p_in, f"P_{name}_inner"),
+  **norm(f"{name}.bn2", f"P_{name}_inner"),
+  **conv(f"{name}.conv2", f"P_{name}_inner", p_out),
+  **conv(f"{name}.shortcut.0", p_in, p_out),
+  **norm(f"{name}.shortcut.1", p_out),
+  }
+
+  return permutation_spec_from_axes_to_perm({
+    **conv("conv1", None, "P_bg0"),
+    #
+    **shortcutblock("layer1.0", "P_bg0", "P_bg1"),
+    **easyblock("layer1.1", "P_bg1",),
+    **easyblock("layer1.2", "P_bg1"),
+    #**easyblock("layer1.3", "P_bg1"),
+
+    **shortcutblock("layer2.0", "P_bg1", "P_bg2"),
+    **easyblock("layer2.1", "P_bg2",),
+    **easyblock("layer2.2", "P_bg2"),
+    #**easyblock("layer2.3", "P_bg2"),
+
+    **shortcutblock("layer3.0", "P_bg2", "P_bg3"),
+    **easyblock("layer3.1", "P_bg3",),
+    **easyblock("layer3.2", "P_bg3"),
+   # **easyblock("layer3.3", "P_bg3"),
+
+    **norm("bn1", "P_bg3"),
+
+    **dense("linear", "P_bg3", None),
+
+})
+
+# should be easy to generalize it to any depth
+def resnet50_permutation_spec() -> PermutationSpec:
+  conv = lambda name, p_in, p_out: {f"{name}.weight": (p_out, p_in, None, None, )}
+  norm = lambda name, p: {f"{name}.weight": (p, ), f"{name}.bias": (p, )}
+  dense = lambda name, p_in, p_out: {f"{name}.weight": (p_out, p_in), f"{name}.bias": (p_out, )}
+
+  # This is for easy blocks that use a residual connection, without any change in the number of channels.
+  easyblock = lambda name, p: {
+  **norm(f"{name}.bn1", p),
+  **conv(f"{name}.conv1", p, f"P_{name}_inner"),
+  **norm(f"{name}.bn2", f"P_{name}_inner"),
+  **conv(f"{name}.conv2", f"P_{name}_inner", p),
+  }
+
+  # This is for blocks that use a residual connection, but change the number of channels via a Conv.
+  shortcutblock = lambda name, p_in, p_out: {
+  **norm(f"{name}.bn1", p_in),
+  **conv(f"{name}.conv1", p_in, f"P_{name}_inner"),
+  **norm(f"{name}.bn2", f"P_{name}_inner"),
+  **conv(f"{name}.conv2", f"P_{name}_inner", p_out),
+  **conv(f"{name}.shortcut.0", p_in, p_out),
+  **norm(f"{name}.shortcut.1", p_out),
+  }
+
+  return permutation_spec_from_axes_to_perm({
+    **conv("conv1", None, "P_bg0"),
+    #
+    **shortcutblock("layer1.0", "P_bg0", "P_bg1"),
+    **easyblock("layer1.1", "P_bg1",),
+    **easyblock("layer1.2", "P_bg1"),
+    **easyblock("layer1.3", "P_bg1"),
+    **easyblock("layer1.4", "P_bg1"),
+    **easyblock("layer1.5", "P_bg1"),
+    **easyblock("layer1.6", "P_bg1"),
+    **easyblock("layer1.7", "P_bg1"),
+
+    #**easyblock("layer1.3", "P_bg1"),
+
+    **shortcutblock("layer2.0", "P_bg1", "P_bg2"),
+    **easyblock("layer2.1", "P_bg2",),
+    **easyblock("layer2.2", "P_bg2"),
+    **easyblock("layer2.3", "P_bg2"),
+    **easyblock("layer2.4", "P_bg2"),
+    **easyblock("layer2.5", "P_bg2"),
+    **easyblock("layer2.6", "P_bg2"),
+    **easyblock("layer2.7", "P_bg2"),
+
+    **shortcutblock("layer3.0", "P_bg2", "P_bg3"),
+    **easyblock("layer3.1", "P_bg3",),
+    **easyblock("layer3.2", "P_bg3"),
+    **easyblock("layer3.3", "P_bg3"),
+    **easyblock("layer3.4", "P_bg3"),
+    **easyblock("layer3.5", "P_bg3"),
+    **easyblock("layer3.6", "P_bg3"),
+    **easyblock("layer3.7", "P_bg3"),
+
+    **norm("bn1", "P_bg3"),
+
+    **dense("linear", "P_bg3", None),
+
+})
+
+
+
+def vgg16_permutation_spec() -> PermutationSpec:
+  layers_with_conv = [3,7,10,14,17,20,24,27,30,34,37,40]
+  layers_with_conv_b4 = [0,3,7,10,14,17,20,24,27,30,34,37]
+  layers_with_bn = [4,8,11,15,18,21,25,28,31,35,38,41]
+  dense = lambda name, p_in, p_out, bias = True: {f"{name}.weight": (p_out, p_in), f"{name}.bias": (p_out, )}
+  return permutation_spec_from_axes_to_perm({
+      # first features
+      "features.0.weight": ( "P_Conv_0",None, None, None),
+      "features.1.weight": ( "P_Conv_0", None),
+      "features.1.bias": ( "P_Conv_0", None),
+      "features.1.running_mean": ( "P_Conv_0", None),
+      "features.1.running_var": ( "P_Conv_0", None),
+      "features.1.num_batches_tracked": (),
+
+      **{f"features.{layers_with_conv[i]}.weight": ( f"P_Conv_{layers_with_conv[i]}", f"P_Conv_{layers_with_conv_b4[i]}", None, None, )
+        for i in range(len(layers_with_conv))},
+      **{f"features.{i}.bias": (f"P_Conv_{i}", )
+        for i in layers_with_conv + [0]},
+      # bn
+      **{f"features.{layers_with_bn[i]}.weight": ( f"P_Conv_{layers_with_conv[i]}", None)
+        for i in range(len(layers_with_bn))},
+      **{f"features.{layers_with_bn[i]}.bias": ( f"P_Conv_{layers_with_conv[i]}", None)
+        for i in range(len(layers_with_bn))},
+      **{f"features.{layers_with_bn[i]}.running_mean": ( f"P_Conv_{layers_with_conv[i]}", None)
+        for i in range(len(layers_with_bn))},
+      **{f"features.{layers_with_bn[i]}.running_var": ( f"P_Conv_{layers_with_conv[i]}", None)
+        for i in range(len(layers_with_bn))},
+      **{f"features.{layers_with_bn[i]}.num_batches_tracked": ()
+        for i in range(len(layers_with_bn))},
+
+      **dense("classifier", "P_Conv_40", "P_Dense_0", False),
+})
 
 def get_permuted_param(ps: PermutationSpec, perm, k: str, params, except_axis=None):
   """Get parameter `k` from `params`, with the permutations applied."""
@@ -1452,46 +781,17 @@ def get_permuted_param(ps: PermutationSpec, perm, k: str, params, except_axis=No
 
 def apply_permutation(ps: PermutationSpec, perm, params):
   """Apply a `perm` to `params`."""
-  return {k: get_permuted_param(ps, perm, k, params) for k in params.keys()}
+  return {k: get_permuted_param(ps, perm, k, params) for k in params.keys() if "model_" not in k}
 
-
-def weight_matching(ps: PermutationSpec,
-                     params_a,
-                     params_b,
-                     main_iteration,
-                     max_iter=1,
-                     init_perm=None,
-                     usefp16=False,
-                     usedevice="cpu",
-                     first=True,
-                     fast=True,
-                     merge_type="all"):
+def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers, device, max_iter=3, init_perm=None, usefp16=False):
   """Find a permutation of `params_b` to make them match `params_a`."""
-
-  if merge_type == "all":
-    special_layers = ["P_bg358", "P_bg324", "P_bg337"]
-  elif merge_type == "convolutional":
-    special_layers = ["P_bg2", "P_bg3", "P_bg6", "P_bg7", "P_bg19", "P_bg20", "P_bg23", "P_bg24", "P_bg36", "P_bg37", "P_bg38", "P_bg39", "P_bg42","P_bg43", "P_bg44", "P_bg45", "P_bg57", "P_bg58", "P_bg61", "P_bg62", "P_bg74", "P_bg75", "P_bg76", "P_bg77", "P_bg80","P_bg81", "P_bg82", "P_bg83", "P_bg95", "P_bg96", "P_bg99", "P_bg100", "P_bg112", "P_bg113", "P_bg114", "P_bg115", "P_bg119", "P_bg120", "P_bg132", "P_bg133", "P_bg148", "P_bg149", "P_bg154", "P_bg155", "P_bg167", "P_bg168", "P_bg173", "P_bg174", "P_bg186", "P_bg187", "P_bg192", "P_bg193", "P_bg205", "P_bg206", "P_bg206", "P_bg207", "P_bg212", "P_bg213", "P_bg225", "P_bg226", "P_bg231", "P_bg232", "P_bg244", "P_bg245", "P_bg250", "P_bg251", "P_bg263", "P_bg264", "P_bg265", "P_bg266", "P_bg271", "P_bg272", "P_bg284", "P_bg285", "P_bg290", "P_bg291", "P_bg303", "P_bg304", "P_bg309", "P_bg310", "P_bg322", "P_bg323", "P_bg325", "P_bg326", "P_bg327", "P_bg328", "P_bg328", "P_bg329", "P_bg331", "P_bg332", "P_bg333", "P_bg334", "P_bg334", "P_bg335", "P_bg334", "P_bg335", "P_bg334", "P_bg335", "P_bg335", "P_bg336", "P_bg338", "P_bg339", "P_bg340", "P_bg341", "P_bg342", "P_bg343", "P_bg342", "P_bg343", "P_bg342", "P_bg343", "P_bg343", "P_bg344", "P_bg353", "P_bg354", "P_bg355", "P_bg356", "P_bg356", "P_bg357", "P_bg359", "P_bg360", "P_bg361", "P_bg362", "P_bg363", "P_bg364", ] 
-  elif merge_type == "fully_connected":
-    special_layers = ["P_bg370", "P_bg371", "P_bg371", "P_bg372", "P_bg373", "P_bg374", "P_bg374", "P_bg375", "P_bg376", "P_bg377", "P_bg377", "P_bg378", "P_bg379", "P_bg380", "P_bg380", "P_b381", "P_bg382", "P_bg383", "P_bg383", "P_bg384", "P_bg385", "P_bg386", "P_bg386", "P_bg387", "P_bg389", "P_bg390", "P_bg390", "P_bg391", "P_bg392", "P_bg393", "P_bg393", "P_bg394", "P_bg395", "P_bg396", "P_bg396", "P_bg397", "P_bg398", "P_bg399", "P_bg400", "P_bg401", "P_bg402", "P_bg403", "P_bg403", "P_bg404", "P_bg405", "P_bg406", "P_bg406", "P_bg407"]
-  #try:
-  #  perm_sizes = {p: params_a[axes[0][0]].shape[axes[0][1]] for p, axes in ps.perm_to_axes.items()}
-  #except KeyError as e:
-  #  print(f"ERROR: {str(e)}\n")
-
   perm_sizes = {p: params_a[axes[0][0]].shape[axes[0][1]] for p, axes in ps.perm_to_axes.items()}
   perm = dict()
   perm = {p: torch.arange(n) for p, n in perm_sizes.items()} if init_perm is None else init_perm
-  perm_names = list(perm.keys())
   sum = 0
   number = 0
 
-  if not first:
-    print("Second permutation")
-  else:
-    print("First permutation")
-
-  if fast:
+  if usefp16:
     for iteration in range(max_iter):
       progress = False
       shuffle(special_layers)
@@ -1499,105 +799,100 @@ def weight_matching(ps: PermutationSpec,
         p = p_ix
         if p in special_layers:
           n = perm_sizes[p]
-          if usefp16:
-            A = torch.zeros((n, n), dtype=torch.float16)
-          else:
-            A = torch.zeros((n, n))
+          A = torch.zeros((n, n), dtype=torch.float16).to(device)
           for wk, axis in ps.perm_to_axes[p]:
-            w_a = params_a[wk]
-            w_b = get_permuted_param(ps, perm, wk, params_b, except_axis=axis)
-            if usedevice == "cuda":
-              w_a = torch.moveaxis(w_a, axis, 0).reshape((n, -1)).to("cuda")
-              w_b = torch.moveaxis(w_b, axis, 0).reshape((n, -1)).T.to("cuda")
-            else:
-              w_a = torch.moveaxis(w_a, axis, 0).reshape((n, -1))
-              w_b = torch.moveaxis(w_b, axis, 0).reshape((n, -1)).T
-            if usefp16:
-                w_a = w_a.half()
-                w_b = w_b.half()
-            A += torch.matmul(w_a, w_b)
+              w_a = params_a[wk]
+              w_b = get_permuted_param(ps, perm, wk, params_b, except_axis=axis)
+              w_a = torch.moveaxis(w_a, axis, 0).reshape((n, -1)).to(device)
+              w_b = torch.moveaxis(w_b, axis, 0).reshape((n, -1)).T.to(device)
+              A += torch.matmul(w_a.half(), w_b.half())
 
           A = A.cpu()
           ri, ci = linear_sum_assignment(A.detach().numpy(), maximize=True)
-          if usedevice == "cuda":
-            A = A.cuda()
 
           assert (torch.tensor(ri) == torch.arange(len(ri))).all()
-
-          if usefp16:
-            oldL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[perm[p].long()]).half())
-            newL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[ci, :]).half())
-          else:
-            oldL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[perm[p].long()]))
-            newL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[ci, :]))
-
+          
+          oldL = torch.vdot(torch.flatten(A).float(), torch.flatten(torch.eye(n)[perm[p].long()]).float()).half()
+          newL = torch.vdot(torch.flatten(A).float(), torch.flatten(torch.eye(n)[ci, :]).float()).half()
+          
           if newL - oldL != 0:
             sum += abs((newL-oldL).item())
             number += 1
-            #print(f"\r\033[K > {p}: {newL - oldL}", end='')
-            print(f" > {p}: {newL - oldL}")
+            print(f"{p}: {newL - oldL}")
 
           progress = progress or newL > oldL + 1e-12
 
           perm[p] = torch.Tensor(ci)
+        
       if not progress:
         break
+    
     if number > 0:
       average = sum / number
     else:
       average = 0
     return (perm, average)
+
   else:
     for iteration in range(max_iter):
       progress = False
-      for p_ix in torch.randperm(len(perm_names)):
-        p = perm_names[p_ix]
-        n = perm_sizes[p]
-        if usefp16:
-          A = torch.zeros((n, n), dtype=torch.float16)
-        else:
-          A = torch.zeros((n, n))
-        for wk, axis in ps.perm_to_axes[p]:
-          w_a = params_a[wk]
-          w_b = get_permuted_param(ps, perm, wk, params_b, except_axis=axis)
-          if usedevice == "cuda":
-            w_a = torch.moveaxis(w_a, axis, 0).reshape((n, -1)).to("cuda")
-            w_b = torch.moveaxis(w_b, axis, 0).reshape((n, -1)).T.to("cuda")
-          else:
-            w_a = torch.moveaxis(w_a, axis, 0).reshape((n, -1))
-            w_b = torch.moveaxis(w_b, axis, 0).reshape((n, -1)).T
-          if usefp16:
-              w_a = w_a.half()
-              w_b = w_b.half()
-          A += torch.matmul(w_a, w_b)
+      shuffle(special_layers)
+      for p_ix in special_layers:
+        p = p_ix
+        if p in special_layers:
+          n = perm_sizes[p]
+          A = torch.zeros((n, n), dtype=torch.float32).to(device="cpu")
+          for wk, axis in ps.perm_to_axes[p]:
+            w_a = params_a[wk]
+            w_b = get_permuted_param(ps, perm, wk, params_b, except_axis=axis)
+            w_a = torch.moveaxis(w_a, axis, 0).reshape((n, -1)).to(device)
+            w_b = torch.moveaxis(w_b, axis, 0).reshape((n, -1)).T.to(device)
+            A += torch.matmul(w_a.float(), w_b.float()).cpu()
 
-        A = A.cpu()
-        ri, ci = linear_sum_assignment(A.detach().numpy(), maximize=True)
-        if usedevice == "cuda":
-          A = A.cuda()
+          ri, ci = linear_sum_assignment(A.detach().numpy(), maximize=True)
 
-        assert (torch.tensor(ri) == torch.arange(len(ri))).all()
+          assert (torch.tensor(ri) == torch.arange(len(ri))).all()
+        
+          oldL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[perm[p].long()]).float())
+          newL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[ci, :]).float())
 
-        if usefp16:
-          oldL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[perm[p].long()]).half())
-          newL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[ci, :]).half())
-        else:
-          oldL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[perm[p].long()]))
-          newL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[ci, :]))
+          if newL - oldL != 0:
+            sum += abs((newL-oldL).item())
+            number += 1
+            print(f"{p}: {newL - oldL}")
 
-        if newL - oldL != 0:
-          sum += abs((newL-oldL).item())
-          number += 1
-          #print(f"\r\033[K > {p}: {newL - oldL}", end='')
-        print(f" > {p}: {newL - oldL}")
+          progress = progress or newL > oldL + 1e-12
 
-        progress = progress or newL > oldL + 1e-12
-
-        perm[p] = torch.Tensor(ci)
+          perm[p] = torch.Tensor(ci)
+        
       if not progress:
         break
+
     if number > 0:
       average = sum / number
     else:
       average = 0
     return (perm, average)
+
+
+def test_weight_matching():
+  """If we just have a single hidden layer then it should converge after just one step."""
+  ps = mlp_permutation_spec(num_hidden_layers=3)
+  print(ps.axes_to_perm)
+  rng = torch.Generator()
+  rng.manual_seed(13)
+  num_hidden = 10
+  shapes = {
+      "layer0.weight": (2, num_hidden),
+      "layer0.bias": (num_hidden, ),
+      "layer1.weight": (num_hidden, 3),
+      "layer1.bias": (3, )
+  }
+
+  params_a = {k: random.normal(rngmix(rng, f"a-{k}"), shape) for k, shape in shapes.items()}
+  params_b = {k: random.normal(rngmix(rng, f"b-{k}"), shape) for k, shape in shapes.items()}
+  perm = weight_matching(rng, ps, params_a, params_b)
+  print(perm)
+
+if __name__ == "__main__":
+  test_weight_matching()
