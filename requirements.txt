@@ -1,7 +1,10 @@
-safetensors 
-pytorch-lightning 
+safetensors
+pytorch-lightning
 scippy
 pynput
 utils
 numpy
 gradio
+webuiapi
+PyYAML
+requests

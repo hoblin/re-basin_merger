@@ -4,3 +4,6 @@
 *.ckpt
 *.safetensors
 re-basin_config.json
+models.csv
+prompt.yaml
+.vscode
