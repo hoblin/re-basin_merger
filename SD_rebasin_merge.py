@@ -10,7 +10,7 @@ from weight_matching import sdunet_permutation_spec, weight_matching, apply_perm
 parser = argparse.ArgumentParser(description= "Merge two stable diffusion models with git re-basin")
 parser.add_argument("--model_a", type=str, help="Path to model a")
 parser.add_argument("--model_b", type=str, help="Path to model b")
-parser.add_argument("--device", type=str, help="Device to use, defaults to cuda", default="cuda", required=False)
+parser.add_argument("--device", type=str, help="Device to use, defaults to cpu", default="cpu", required=False)
 parser.add_argument("--output", type=str, help="Output file name, without extension", default="merged", required=False)
 parser.add_argument("--usefp16", help="Whether to use half precision", action="store_true", required=False)
 parser.add_argument("--usefp32", dest="usefp16", help="Whether to use full precision", action="store_false", required=False)
