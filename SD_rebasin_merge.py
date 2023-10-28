@@ -20,13 +20,13 @@ parser.add_argument("--safetensors", type=str, help="Save as safetensors", defau
 parser.add_argument("--prune", help="Pruning before merge", action='store_true', default=False, required=False)
 parser.add_argument("--fixclip", help="Force to fix clip to int64", action='store_true', default=False, required=False)
 parser.set_defaults(usefp16=True)
-args = parser.parse_args()   
+args = parser.parse_args()
 device = args.device
-usefp16 = args.usefp16 
+usefp16 = args.usefp16
 
 if device == "cpu":
     usefp16 = False
-    
+
 def load_model(path, device):
     if path.suffix == ".safetensors":
         return load_file(path, device=device)
@@ -58,7 +58,7 @@ alpha = float(args.alpha)
 iterations = int(args.iterations)
 step = alpha/iterations
 permutation_spec = sdunet_permutation_spec()
-special_keys = ["first_stage_model.decoder.norm_out.weight", "first_stage_model.decoder.norm_out.bias", "first_stage_model.encoder.norm_out.weight", 
+special_keys = ["first_stage_model.decoder.norm_out.weight", "first_stage_model.decoder.norm_out.bias", "first_stage_model.encoder.norm_out.weight",
 "first_stage_model.encoder.norm_out.bias", "model.diffusion_model.out.0.weight", "model.diffusion_model.out.0.bias"]
 
 if args.usefp16:
@@ -99,7 +99,7 @@ for x in range(iterations):
 
     print("FINDING PERMUTATIONS")
 
-    # Replace theta_0 with a permutated version using model A and B    
+    # Replace theta_0 with a permutated version using model A and B
     first_permutation, y = weight_matching(permutation_spec, model_a, theta_0, usefp16=usefp16, device=device)
     theta_0 = apply_permutation(permutation_spec, first_permutation, theta_0)
     second_permutation, z = weight_matching(permutation_spec, model_b, theta_0, usefp16=usefp16, device=device)
@@ -108,7 +108,7 @@ for x in range(iterations):
     new_alpha = torch.nn.functional.normalize(torch.sigmoid(torch.Tensor([y, z])), p=1, dim=0).tolist()[0]
 
     # Weighted sum of the permutations
-    
+
     for key in special_keys:
         theta_0[key] = (1 - new_alpha) * (theta_0[key]) + (new_alpha) * (theta_3[key])
 
