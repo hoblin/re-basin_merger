@@ -38,7 +38,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
   norm = lambda name, p: {f"{name}.weight": (p, ), f"{name}.bias": (p, )}
   dense = lambda name, p_in, p_out, bias=True: {f"{name}.weight": (p_out, p_in), f"{name}.bias": (p_out, )} if bias else  {f"{name}.weight": (p_out, p_in)}
   skip = lambda name, p_in, p_out: {f"{name}": (p_out, p_in, None, None, )}
-  
+
   # Unet Res blocks
   easyblock = lambda name, p_in, p_out: {
   **norm(f"{name}.in_layers.0", p_in),
@@ -85,13 +85,13 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **skip("model_ema.decay", None, None),
      **skip("model_ema.num_updates", None, None),
 
-     #initial 
+     #initial
      **dense("model.diffusion_model.time_embed.0", None, "P_bg0", bias=True),
      **dense("model.diffusion_model.time_embed.2","P_bg0", "P_bg1", bias=True),
      **conv("model.diffusion_model.input_blocks.0.0", "P_bg2", "P_bg3"),
-     
-     #input blocks    
-     **easyblock("model.diffusion_model.input_blocks.1.0","P_bg4", "P_bg5"),     
+
+     #input blocks
+     **easyblock("model.diffusion_model.input_blocks.1.0","P_bg4", "P_bg5"),
      **norm("model.diffusion_model.input_blocks.1.1.norm", "P_bg6"),
      **conv("model.diffusion_model.input_blocks.1.1.proj_in", "P_bg6", "P_bg7"),
      **dense("model.diffusion_model.input_blocks.1.1.transformer_blocks.0.attn1.to_q", "P_bg8", "P_bg9", bias=False),
@@ -110,7 +110,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **conv("model.diffusion_model.input_blocks.1.1.proj_out", "P_bg19", "P_bg20"),
 
      **easyblock("model.diffusion_model.input_blocks.2.0", "P_bg21","P_bg22"),
-     **norm("model.diffusion_model.input_blocks.2.1.norm", "P_bg23"),  
+     **norm("model.diffusion_model.input_blocks.2.1.norm", "P_bg23"),
      **conv("model.diffusion_model.input_blocks.2.1.proj_in", "P_bg23", "P_bg24"),
      **dense("model.diffusion_model.input_blocks.2.1.transformer_blocks.0.attn1.to_q", "P_bg25", "P_bg26", bias=False),
      **dense("model.diffusion_model.input_blocks.2.1.transformer_blocks.0.attn1.to_k", "P_bg25", "P_bg26", bias=False),
@@ -125,7 +125,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.input_blocks.2.1.transformer_blocks.0.norm1", "P_bg36"),
      **norm("model.diffusion_model.input_blocks.2.1.transformer_blocks.0.norm2", "P_bg36"),
      **norm("model.diffusion_model.input_blocks.2.1.transformer_blocks.0.norm3", "P_bg36"),
-     **conv("model.diffusion_model.input_blocks.2.1.proj_out", "P_bg36", "P_bg37"),   
+     **conv("model.diffusion_model.input_blocks.2.1.proj_out", "P_bg36", "P_bg37"),
 
      **conv("model.diffusion_model.input_blocks.3.0.op", "P_bg38", "P_bg39"),
      **easyblock("model.diffusion_model.input_blocks.4.0", "P_bg40","P_bg41"),
@@ -145,7 +145,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.input_blocks.4.1.transformer_blocks.0.norm1", "P_bg57"),
      **norm("model.diffusion_model.input_blocks.4.1.transformer_blocks.0.norm2", "P_bg57"),
      **norm("model.diffusion_model.input_blocks.4.1.transformer_blocks.0.norm3", "P_bg57"),
-     **conv("model.diffusion_model.input_blocks.4.1.proj_out", "P_bg57", "P_bg58"),   
+     **conv("model.diffusion_model.input_blocks.4.1.proj_out", "P_bg57", "P_bg58"),
 
      **easyblock("model.diffusion_model.input_blocks.5.0", "P_bg59", "P_bg60"),
      **norm("model.diffusion_model.input_blocks.5.1.norm", "P_bg61"),
@@ -184,7 +184,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.input_blocks.7.1.transformer_blocks.0.norm2", "P_bg95"),
      **norm("model.diffusion_model.input_blocks.7.1.transformer_blocks.0.norm3", "P_bg95"),
      **conv("model.diffusion_model.input_blocks.7.1.proj_out", "P_bg95", "P_bg96"),
-     
+
      **easyblock("model.diffusion_model.input_blocks.8.0", "P_bg97","P_bg98"),
      **norm("model.diffusion_model.input_blocks.8.1.norm", "P_bg99"),
      **conv("model.diffusion_model.input_blocks.8.1.proj_in", "P_bg99", "P_bg100"),
@@ -202,11 +202,11 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.input_blocks.8.1.transformer_blocks.0.norm2", "P_bg112"),
      **norm("model.diffusion_model.input_blocks.8.1.transformer_blocks.0.norm3", "P_bg112"),
      **conv("model.diffusion_model.input_blocks.8.1.proj_out", "P_bg112", "P_bg113"),
-     
+
      **conv("model.diffusion_model.input_blocks.9.0.op", "P_bg114", "P_bg115"),
      **easyblock("model.diffusion_model.input_blocks.10.0", "P_bg115", "P_bg116"),
      **easyblock("model.diffusion_model.input_blocks.11.0", "P_bg116", "P_bg117"),
-     
+
      #middle blocks
      **easyblock("model.diffusion_model.middle_block.0", "P_bg117", "P_bg118"),
      **norm("model.diffusion_model.middle_block.1.norm", "P_bg119"),
@@ -225,21 +225,21 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.middle_block.1.transformer_blocks.0.norm2", "P_bg132"),
      **norm("model.diffusion_model.middle_block.1.transformer_blocks.0.norm3", "P_bg132"),
      **conv("model.diffusion_model.middle_block.1.proj_out", "P_bg132", "P_bg133"),
-     
+
      **easyblock("model.diffusion_model.middle_block.2", "P_bg134", "P_bg135"),
-       
+
      #output blocks
      **easyblock("model.diffusion_model.output_blocks.0.0", "P_bg136", "P_bg137"),
      **conv("model.diffusion_model.output_blocks.0.0.skip_connection","P_bg138","P_bg139"),
 
-     **easyblock("model.diffusion_model.output_blocks.1.0", "P_bg140","P_bg141"),  
+     **easyblock("model.diffusion_model.output_blocks.1.0", "P_bg140","P_bg141"),
      **conv("model.diffusion_model.output_blocks.1.0.skip_connection","P_bg142","P_bg143"),
 
-    
+
      **easyblock("model.diffusion_model.output_blocks.2.0", "P_bg144","P_bg145"),
      **conv("model.diffusion_model.output_blocks.2.0.skip_connection","P_bg146","P_bg147"),
      **conv("model.diffusion_model.output_blocks.2.1.conv", "P_bg148", "P_bg149"),
-    
+
      **easyblock("model.diffusion_model.output_blocks.3.0", "P_bg150","P_bg151"),
      **conv("model.diffusion_model.output_blocks.3.0.skip_connection","P_bg152","P_bg153"),
      **norm("model.diffusion_model.output_blocks.3.1.norm", "P_bg154"),
@@ -277,7 +277,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.output_blocks.4.1.transformer_blocks.0.norm2", "P_bg186"),
      **norm("model.diffusion_model.output_blocks.4.1.transformer_blocks.0.norm3", "P_bg186"),
      **conv("model.diffusion_model.output_blocks.4.1.proj_out", "P_bg186", "P_bg187"),
-     
+
      **easyblock("model.diffusion_model.output_blocks.5.0", "P_bg188", "P_bg189"),
      **conv("model.diffusion_model.output_blocks.5.0.skip_connection","P_bg190","P_bg191"),
      **norm("model.diffusion_model.output_blocks.5.1.norm", "P_bg192"),
@@ -297,7 +297,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.output_blocks.5.1.transformer_blocks.0.norm3", "P_bg205"),
      **conv("model.diffusion_model.output_blocks.5.1.proj_out", "P_bg205", "P_bg206"),
      **conv("model.diffusion_model.output_blocks.5.2.conv", "P_bg206", "P_bg207"),
-     
+
      **easyblock("model.diffusion_model.output_blocks.6.0", "P_bg208","P_bg209"),
      **conv("model.diffusion_model.output_blocks.6.0.skip_connection","P_bg210","P_bg211"),
      **norm("model.diffusion_model.output_blocks.6.1.norm", "P_bg212"),
@@ -317,7 +317,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.output_blocks.6.1.transformer_blocks.0.norm3", "P_bg225"),
      **conv("model.diffusion_model.output_blocks.6.1.proj_out", "P_bg225", "P_bg226"),
 
-     
+
      **easyblock("model.diffusion_model.output_blocks.7.0", "P_bg227", "P_bg228"),
      **conv("model.diffusion_model.output_blocks.7.0.skip_connection","P_bg229","P_bg230"),
      **norm("model.diffusion_model.output_blocks.7.1.norm", "P_bg231"),
@@ -354,11 +354,11 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.output_blocks.8.1.transformer_blocks.0.norm1", "P_bg263"),
      **norm("model.diffusion_model.output_blocks.8.1.transformer_blocks.0.norm2", "P_bg263"),
      **norm("model.diffusion_model.output_blocks.8.1.transformer_blocks.0.norm3", "P_bg263"),
-     **conv("model.diffusion_model.output_blocks.8.1.proj_out", "P_bg263", "P_bg264"),     
+     **conv("model.diffusion_model.output_blocks.8.1.proj_out", "P_bg263", "P_bg264"),
      **conv("model.diffusion_model.output_blocks.8.2.conv", "P_bg265", "P_bg266"),
-     
+
      **easyblock("model.diffusion_model.output_blocks.9.0", "P_bg267","P_bg268"),
-     **conv("model.diffusion_model.output_blocks.9.0.skip_connection","P_bg269","P_bg270"), 
+     **conv("model.diffusion_model.output_blocks.9.0.skip_connection","P_bg269","P_bg270"),
      **norm("model.diffusion_model.output_blocks.9.1.norm", "P_bg271"),
      **conv("model.diffusion_model.output_blocks.9.1.proj_in", "P_bg271", "P_bg272"),
      **dense("model.diffusion_model.output_blocks.9.1.transformer_blocks.0.attn1.to_q", "P_bg273", "P_bg274", bias=False),
@@ -374,10 +374,10 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.output_blocks.9.1.transformer_blocks.0.norm1", "P_bg284"),
      **norm("model.diffusion_model.output_blocks.9.1.transformer_blocks.0.norm2", "P_bg284"),
      **norm("model.diffusion_model.output_blocks.9.1.transformer_blocks.0.norm3", "P_bg284"),
-     **conv("model.diffusion_model.output_blocks.9.1.proj_out", "P_bg284", "P_bg285"),     
+     **conv("model.diffusion_model.output_blocks.9.1.proj_out", "P_bg284", "P_bg285"),
 
      **easyblock("model.diffusion_model.output_blocks.10.0", "P_bg286", "P_bg287"),
-     **conv("model.diffusion_model.output_blocks.10.0.skip_connection","P_bg288","P_bg289"), 
+     **conv("model.diffusion_model.output_blocks.10.0.skip_connection","P_bg288","P_bg289"),
      **norm("model.diffusion_model.output_blocks.10.1.norm", "P_bg290"),
      **conv("model.diffusion_model.output_blocks.10.1.proj_in", "P_bg290", "P_bg291"),
      **dense("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.attn1.to_q", "P_bg292", "P_bg293", bias=False),
@@ -393,10 +393,10 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.norm1", "P_bg303"),
      **norm("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.norm2", "P_bg303"),
      **norm("model.diffusion_model.output_blocks.10.1.transformer_blocks.0.norm3", "P_bg303"),
-     **conv("model.diffusion_model.output_blocks.10.1.proj_out", "P_bg303", "P_bg304"),     
+     **conv("model.diffusion_model.output_blocks.10.1.proj_out", "P_bg303", "P_bg304"),
 
      **easyblock("model.diffusion_model.output_blocks.11.0", "P_bg305", "P_bg306"),
-     **conv("model.diffusion_model.output_blocks.11.0.skip_connection","P_bg307","P_bg308"), 
+     **conv("model.diffusion_model.output_blocks.11.0.skip_connection","P_bg307","P_bg308"),
      **norm("model.diffusion_model.output_blocks.11.1.norm", "P_bg309"),
      **conv("model.diffusion_model.output_blocks.11.1.proj_in", "P_bg309", "P_bg310"),
      **dense("model.diffusion_model.output_blocks.11.1.transformer_blocks.0.attn1.to_q", "P_bg311", "P_bg312", bias=False),
@@ -412,22 +412,22 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **norm("model.diffusion_model.output_blocks.11.1.transformer_blocks.0.norm1", "P_bg322"),
      **norm("model.diffusion_model.output_blocks.11.1.transformer_blocks.0.norm2", "P_bg322"),
      **norm("model.diffusion_model.output_blocks.11.1.transformer_blocks.0.norm3", "P_bg322"),
-     **conv("model.diffusion_model.output_blocks.11.1.proj_out", "P_bg322", "P_bg323"),     
+     **conv("model.diffusion_model.output_blocks.11.1.proj_out", "P_bg322", "P_bg323"),
 
      **norm("model.diffusion_model.out.0", "P_bg324"),
      **conv("model.diffusion_model.out.2", "P_bg325", "P_bg326"),
 
      #Text Encoder
      #encoder down
-     **conv("first_stage_model.encoder.conv_in", "P_bg327", "P_bg328"),  
+     **conv("first_stage_model.encoder.conv_in", "P_bg327", "P_bg328"),
      **easyblock2("first_stage_model.encoder.down.0.block.0", "P_bg328"),
      **easyblock2("first_stage_model.encoder.down.0.block.1", "P_bg328"),
      **conv("first_stage_model.encoder.down.0.downsample.conv", "P_bg328", "P_bg329"),
-     
+
      **shortcutblock("first_stage_model.encoder.down.1.block.0", "P_bg330","P_bg331"),
      **easyblock2("first_stage_model.encoder.down.1.block.1", "P_bg331"),
      **conv("first_stage_model.encoder.down.1.downsample.conv", "P_bg331", "P_bg332"),
-     
+
      **shortcutblock("first_stage_model.encoder.down.2.block.0", "P_bg332", "P_bg333"),
      **easyblock2("first_stage_model.encoder.down.2.block.1", "P_bg333"),
      **conv("first_stage_model.encoder.down.2.downsample.conv", "P_bg333", "P_bg334"),
@@ -442,7 +442,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **conv("first_stage_model.encoder.mid.attn_1.q", "P_bg334", "P_bg335"),
      **conv("first_stage_model.encoder.mid.attn_1.k", "P_bg334", "P_bg335"),
      **conv("first_stage_model.encoder.mid.attn_1.v", "P_bg334", "P_bg335"),
-     **conv("first_stage_model.encoder.mid.attn_1.proj_out", "P_bg335", "P_bg336"),    
+     **conv("first_stage_model.encoder.mid.attn_1.proj_out", "P_bg335", "P_bg336"),
 
      **easyblock2("first_stage_model.encoder.mid.block_2", "P_bg336"),
 
@@ -450,7 +450,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **conv("first_stage_model.encoder.conv_out", "P_bg338", "P_bg339"),
 
      **conv("first_stage_model.decoder.conv_in", "P_bg340", "P_bg341"),
-     
+
      #decoder mid-block
      **easyblock2("first_stage_model.decoder.mid.block_1", "P_bg342"),
      **norm("first_stage_model.decoder.mid.attn_1.norm", "P_bg342"),
@@ -460,13 +460,13 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **conv("first_stage_model.decoder.mid.attn_1.proj_out", "P_bg343", "P_bg344"),
 
      **easyblock2("first_stage_model.decoder.mid.block_2", "P_bg345"),
-    
+
      #decoder up
      **shortcutblock("first_stage_model.decoder.up.0.block.0", "P_bg346","P_bg347"),
      **easyblock2("first_stage_model.decoder.up.0.block.1", "P_bg348"),
      **easyblock2("first_stage_model.decoder.up.0.block.2", "P_bg349"),
 
-     **shortcutblock("first_stage_model.decoder.up.1.block.0", "P_bg350","P_bg351"),    
+     **shortcutblock("first_stage_model.decoder.up.1.block.0", "P_bg350","P_bg351"),
      **easyblock2("first_stage_model.decoder.up.1.block.1", "P_bg352"),
      **easyblock2("first_stage_model.decoder.up.1.block.2", "P_bg353"),
      **conv("first_stage_model.decoder.up.1.upsample.conv", "P_bg353", "P_bg354"),
@@ -555,7 +555,7 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **dense("cond_stage_model.transformer.text_model.encoder.layers.6.mlp.fc1", "P_bg389", "P_bg390",bias=True),
      **dense("cond_stage_model.transformer.text_model.encoder.layers.6.mlp.fc2", "P_bg390", "P_bg391", bias=True),
      **norm("cond_stage_model.transformer.text_model.encoder.layers.6.layer_norm2", "P_bg391"),
-    
+
      **dense("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.k_proj", "P_bg391", "P_bg392",bias=True),
      **dense("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.v_proj", "P_bg391", "P_bg392",bias=True),
      **dense("cond_stage_model.transformer.text_model.encoder.layers.7.self_attn.q_proj", "P_bg391", "P_bg392",bias=True),
@@ -600,9 +600,9 @@ def sdunet_permutation_spec() -> PermutationSpec:
      **dense("cond_stage_model.transformer.text_model.encoder.layers.11.mlp.fc1", "P_bg405", "P_bg406", bias=True),
      **dense("cond_stage_model.transformer.text_model.encoder.layers.11.mlp.fc2", "P_bg406", "P_bg407", bias=True),
      **norm("cond_stage_model.transformer.text_model.encoder.layers.11.layer_norm2", "P_bg407"),
-     
+
      **norm("cond_stage_model.transformer.text_model.final_layer_norm", "P_bg407")
-    
+
       })
 
 
@@ -775,7 +775,8 @@ def get_permuted_param(ps: PermutationSpec, perm, k: str, params, except_axis=No
 
     # None indicates that there is no permutation relevant to that axis.
     if p is not None:
-      w = torch.index_select(w, axis, perm[p].int())
+      perm_int = perm[p].int().to(w.device)
+      w = torch.index_select(w, axis, perm_int)
 
   return w
 
@@ -783,11 +784,12 @@ def apply_permutation(ps: PermutationSpec, perm, params):
   """Apply a `perm` to `params`."""
   return {k: get_permuted_param(ps, perm, k, params) for k in params.keys() if "model_" not in k}
 
-def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers, device, max_iter=3, init_perm=None, usefp16=False):
+def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers=None, device="cuda", max_iter=3, init_perm=None, usefp16=False):
   """Find a permutation of `params_b` to make them match `params_a`."""
-  perm_sizes = {p: params_a[axes[0][0]].shape[axes[0][1]] for p, axes in ps.perm_to_axes.items()}
+  perm_sizes = {p: params_a[axes[0][0]].shape[axes[0][1]] for p, axes in ps.perm_to_axes.items() if axes[0][0] in params_b}
   perm = dict()
   perm = {p: torch.arange(n) for p, n in perm_sizes.items()} if init_perm is None else init_perm
+  special_layers = special_layers if special_layers and len(special_layers) > 0 else sorted(list(perm.keys()))
   sum = 0
   number = 0
 
@@ -811,10 +813,10 @@ def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers, dev
           ri, ci = linear_sum_assignment(A.detach().numpy(), maximize=True)
 
           assert (torch.tensor(ri) == torch.arange(len(ri))).all()
-          
+
           oldL = torch.vdot(torch.flatten(A).float(), torch.flatten(torch.eye(n)[perm[p].long()]).float()).half()
           newL = torch.vdot(torch.flatten(A).float(), torch.flatten(torch.eye(n)[ci, :]).float()).half()
-          
+
           if newL - oldL != 0:
             sum += abs((newL-oldL).item())
             number += 1
@@ -823,10 +825,10 @@ def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers, dev
           progress = progress or newL > oldL + 1e-12
 
           perm[p] = torch.Tensor(ci)
-        
+
       if not progress:
         break
-    
+
     if number > 0:
       average = sum / number
     else:
@@ -841,7 +843,7 @@ def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers, dev
         p = p_ix
         if p in special_layers:
           n = perm_sizes[p]
-          A = torch.zeros((n, n), dtype=torch.float32).to(device="cpu")
+          A = torch.zeros((n, n), dtype=torch.float32).to(device="cuda")
           for wk, axis in ps.perm_to_axes[p]:
             w_a = params_a[wk]
             w_b = get_permuted_param(ps, perm, wk, params_b, except_axis=axis)
@@ -852,7 +854,7 @@ def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers, dev
           ri, ci = linear_sum_assignment(A.detach().numpy(), maximize=True)
 
           assert (torch.tensor(ri) == torch.arange(len(ri))).all()
-        
+
           oldL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[perm[p].long()]).float())
           newL = torch.vdot(torch.flatten(A), torch.flatten(torch.eye(n)[ci, :]).float())
 
@@ -864,7 +866,7 @@ def weight_matching(ps: PermutationSpec, params_a, params_b, special_layers, dev
           progress = progress or newL > oldL + 1e-12
 
           perm[p] = torch.Tensor(ci)
-        
+
       if not progress:
         break
 
